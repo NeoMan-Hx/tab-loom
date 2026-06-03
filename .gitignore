@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.pnpm-store/
+.codex-tools/
+output/
+release/
+*.crx
+*.pem
+*.zip
+*.tsbuildinfo

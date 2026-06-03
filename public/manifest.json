@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Loom",
+  "short_name": "Tab Loom",
+  "version": "0.1.14",
+  "description": "A workspace-first new tab page for collecting browser tabs.",
+  "permissions": ["storage", "tabs", "tabGroups"],
+  "incognito": "not_allowed",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  }
+}
