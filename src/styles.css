@@ -94,7 +94,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -1178,6 +1179,10 @@ button {
   background: var(--surface);
 }
 
+.settings-panel-wide {
+  grid-column: 1 / -1;
+}
+
 .settings-panel-heading {
   display: grid;
   gap: 4px;
@@ -1193,6 +1198,10 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+.settings-error {
+  color: var(--danger);
 }
 
 .theme-options {
@@ -1304,6 +1313,88 @@ button {
   margin-bottom: 10px;
 }
 
+.sync-provider-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sync-provider {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.sync-provider:hover,
+.sync-provider.selected {
+  border-color: var(--accent);
+  background: var(--surface-accent);
+  color: var(--accent-text);
+}
+
+.settings-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.settings-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-field input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  outline: none;
+}
+
+.settings-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.settings-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sync-auto-form {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sync-interval-field {
+  max-width: 240px;
+}
+
 .fatal-screen {
   display: grid;
   min-height: 100vh;
@@ -1371,6 +1462,11 @@ button {
 
   .settings-layout {
     padding: 10px;
+  }
+
+  .settings-field-row,
+  .sync-provider-options {
+    grid-template-columns: 1fr;
   }
 
   .workspace-heading,

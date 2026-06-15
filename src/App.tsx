@@ -23,6 +23,7 @@ import { WorkspaceNav } from "./components/WorkspaceNav";
 import { useOpenTabGroups } from "./hooks/useOpenTabGroups";
 import { usePersistentAppState } from "./hooks/usePersistentAppState";
 import { useThemeMode } from "./hooks/useThemeMode";
+import { useAutoSync } from "./hooks/useAutoSync";
 import { closeOriginalTabAfterSave, filterOpenTabGroups } from "./services/chromeTabs";
 import type { ChromeOpenTab, EntityId, SavedTab } from "./types";
 
@@ -30,13 +31,14 @@ type AppView = "workspace" | "settings";
 type DragEntityType = "open-tab" | "saved-tab" | "folder" | "workspace" | null;
 
 function App() {
-  const { state, dispatch, canUndo, undo } = usePersistentAppState();
+  const { state, dispatch, status, canUndo, undo } = usePersistentAppState();
   const { groups: openGroups, loading: openTabsLoading } = useOpenTabGroups();
   const [dragOverlayText, setDragOverlayText] = useState<string | null>(null);
   const [activeDragType, setActiveDragType] = useState<DragEntityType>(null);
   const [view, setView] = useState<AppView>("workspace");
   const [editMode, setEditMode] = useState(false);
   useThemeMode(state.settings.themeMode);
+  useAutoSync(state, dispatch, status);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
