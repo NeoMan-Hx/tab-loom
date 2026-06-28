@@ -68,7 +68,7 @@ export function createDefaultState(): AppState {
     savedTabs: {},
     settings: {
       activeWorkspaceId: workspaceId,
-      themeMode: "system",
+      themeMode: "light",
       openSavedTabMode: "new-tab",
       showPinnedOpenTabs: true,
       openFolderMode: "direct"

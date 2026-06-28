@@ -35,6 +35,7 @@ export function SavedTabCard({
   const [title, setTitle] = useState(tab.title);
   const [url, setUrl] = useState(tab.url);
   const [favIconUrl, setFavIconUrl] = useState(tab.favIconUrl ?? "");
+  const [iconLoaded, setIconLoaded] = useState(false);
   const [error, setError] = useState("");
   const [iconFailed, setIconFailed] = useState(false);
   const [menuAlign, setMenuAlign] = useState<"left" | "right">("right");
@@ -52,6 +53,7 @@ export function SavedTabCard({
   };
 
   useEffect(() => {
+    setIconLoaded(false);
     setIconFailed(false);
   }, [tab.favIconUrl]);
 
@@ -88,7 +90,7 @@ export function SavedTabCard({
   }, [menuOpen]);
 
   const deleteTab = () => {
-    if (confirm(`删除保存页“${tab.title}”？`)) {
+    if (confirm(`删除保存项“${tab.title}”？`)) {
       dispatch({ type: "deleteSavedTab", savedTabId: tab.id });
     }
     setMenuOpen(false);
@@ -139,7 +141,7 @@ export function SavedTabCard({
     const nextOpen = !menuOpen;
     if (nextOpen && menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
-      setMenuAlign(rect.right - 288 < 8 ? "left" : "right");
+      setMenuAlign(rect.right - 304 < 8 ? "left" : "right");
     } else {
       setEditing(false);
     }
@@ -147,7 +149,8 @@ export function SavedTabCard({
   };
 
   const fallbackText = getSavedTabIconFallback(tab.title, tab.url);
-  const showFallbackIcon = !tab.favIconUrl || iconFailed;
+  const hasLoadableIcon = Boolean(tab.favIconUrl) && !iconFailed;
+  const showFallbackIcon = !hasLoadableIcon || !iconLoaded;
   const openTab = () => void openSavedTab(tab, openSavedTabMode);
 
   const handleCardClick = (event: MouseEvent<HTMLElement>) => {
@@ -165,7 +168,13 @@ export function SavedTabCard({
   return (
     <article
       ref={setNodeRef}
-      className={[isDragging ? "saved-tab-card dragging" : "saved-tab-card", editMode ? "edit-mode" : ""].filter(Boolean).join(" ")}
+      className={[
+        isDragging ? "saved-tab-card dragging" : "saved-tab-card",
+        editMode ? "edit-mode" : "",
+        menuOpen ? "menu-open" : ""
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={style}
       role="button"
       tabIndex={0}
@@ -185,7 +194,19 @@ export function SavedTabCard({
       </button>
 
       <div className="favicon-mark" aria-hidden="true">
-        {showFallbackIcon ? <span>{fallbackText}</span> : <img src={tab.favIconUrl} alt="" onError={() => setIconFailed(true)} />}
+        {showFallbackIcon && <span>{fallbackText}</span>}
+        {hasLoadableIcon && (
+          <img
+            className={iconLoaded ? "loaded" : ""}
+            src={tab.favIconUrl}
+            alt=""
+            onLoad={() => setIconLoaded(true)}
+            onError={() => {
+              setIconLoaded(false);
+              setIconFailed(true);
+            }}
+          />
+        )}
       </div>
 
       <div className="saved-tab-main">
@@ -197,7 +218,7 @@ export function SavedTabCard({
 
       <div className="saved-tab-more" ref={menuRef} onClick={(event) => event.stopPropagation()}>
         <button className="icon-button subtle" type="button" title="更多操作" onClick={toggleMenu}>
-          <MoreHorizontal size={16} />
+          <MoreHorizontal size={17} />
         </button>
 
         {menuOpen && (
@@ -229,11 +250,11 @@ export function SavedTabCard({
             ) : (
               <>
                 <button className="menu-action-button" type="button" onClick={startEditing}>
-                  <Pencil size={14} />
+                  <Pencil size={15} />
                   编辑
                 </button>
                 <button className="menu-action-button danger" type="button" onClick={deleteTab}>
-                  <Trash2 size={14} />
+                  <Trash2 size={15} />
                   删除
                 </button>
               </>

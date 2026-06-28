@@ -78,7 +78,7 @@ export function buildOpenTabGroups(
     });
 }
 
-export async function closeOriginalTabAfterSave(tab: ChromeOpenTab): Promise<CloseResult> {
+export async function closeOpenTab(tab: ChromeOpenTab): Promise<CloseResult> {
   if (tab.pinned) {
     return { closed: false, reason: "pinned" };
   }
@@ -97,6 +97,10 @@ export async function closeOriginalTabAfterSave(tab: ChromeOpenTab): Promise<Clo
   } catch {
     return { closed: false, reason: "failed" };
   }
+}
+
+export async function closeOriginalTabAfterSave(tab: ChromeOpenTab): Promise<CloseResult> {
+  return closeOpenTab(tab);
 }
 
 export interface OpenSavedTabsOptions {

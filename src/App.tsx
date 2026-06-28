@@ -9,41 +9,45 @@ import {
   type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
+  type Modifier,
   useSensor,
   useSensors
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Grip, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
+import { PencilLine, Plus, Redo2, Settings as SettingsIcon, SunMedium, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FolderSection } from "./components/FolderSection";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { OpenTabsPanel } from "./components/OpenTabsPanel";
 import { SettingsPage } from "./components/SettingsPage";
 import { WorkspaceNav } from "./components/WorkspaceNav";
+import { useAutoSync } from "./hooks/useAutoSync";
 import { useOpenTabGroups } from "./hooks/useOpenTabGroups";
 import { usePersistentAppState } from "./hooks/usePersistentAppState";
 import { useThemeMode } from "./hooks/useThemeMode";
-import { useAutoSync } from "./hooks/useAutoSync";
 import { closeOriginalTabAfterSave, filterOpenTabGroups } from "./services/chromeTabs";
 import type { ChromeOpenTab, EntityId, SavedTab } from "./types";
 
 type AppView = "workspace" | "settings";
 type DragEntityType = "open-tab" | "saved-tab" | "folder" | "workspace" | null;
+type DragOverlayIcon = { src?: string; fallback: string };
 
 function App() {
-  const { state, dispatch, status, canUndo, undo } = usePersistentAppState();
+  const { state, dispatch, status, canUndo, canRedo, undo, redo } = usePersistentAppState();
   const { groups: openGroups, loading: openTabsLoading } = useOpenTabGroups();
   const [dragOverlayText, setDragOverlayText] = useState<string | null>(null);
+  const [dragOverlayIcon, setDragOverlayIcon] = useState<DragOverlayIcon | null>(null);
   const [activeDragType, setActiveDragType] = useState<DragEntityType>(null);
   const [view, setView] = useState<AppView>("workspace");
   const [editMode, setEditMode] = useState(false);
-  useThemeMode(state.settings.themeMode);
+  useThemeMode(state.settings.themeMode, status !== "loading");
   useAutoSync(state, dispatch, status);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
   const collisionDetection: CollisionDetection = (args) => {
     const activeType = args.active.data.current?.type;
     const droppableContainers = args.droppableContainers.filter((container) => isDroppableForActiveType(container.id, activeType));
@@ -94,6 +98,7 @@ function App() {
 
     if (dragType !== "open-tab" && !editMode) {
       setDragOverlayText(null);
+      setDragOverlayIcon(null);
       setActiveDragType(null);
       return;
     }
@@ -101,9 +106,13 @@ function App() {
     setActiveDragType(dragType);
 
     if (dragType === "open-tab") {
-      setDragOverlayText((data?.tab as ChromeOpenTab | undefined)?.title ?? null);
+      const tab = data?.tab as ChromeOpenTab | undefined;
+      setDragOverlayText(null);
+      setDragOverlayIcon(tab ? { src: tab.favIconUrl, fallback: getOpenTabFallback(tab) } : null);
       return;
     }
+
+    setDragOverlayIcon(null);
 
     if (dragType === "saved-tab") {
       setDragOverlayText(state.savedTabs[data?.savedTabId as EntityId]?.title ?? null);
@@ -127,6 +136,7 @@ function App() {
     const data = event.active.data.current;
     const over = event.over;
     setDragOverlayText(null);
+    setDragOverlayIcon(null);
     setActiveDragType(null);
 
     if (!over) return;
@@ -181,7 +191,7 @@ function App() {
     if (data?.type === "saved-tab") {
       if (!editMode) return;
       const savedTabId = data.savedTabId as EntityId;
-      const target = getSavedTabDropTarget(over.id, over.data.current, state.savedTabs, state.folders);
+      const target = getSavedTabDropTarget(over.id, state.savedTabs, state.folders);
       if (!target || !state.savedTabs[savedTabId]) return;
 
       dispatch({
@@ -212,6 +222,11 @@ function App() {
     }
   };
 
+  const toggleTheme = () => {
+    const nextTheme = state.settings.themeMode === "light" ? "dark" : "light";
+    dispatch({ type: "setThemeMode", themeMode: nextTheme });
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -220,39 +235,60 @@ function App() {
       onDragEnd={handleDragEnd}
       onDragCancel={() => {
         setDragOverlayText(null);
+        setDragOverlayIcon(null);
         setActiveDragType(null);
       }}
     >
       <div className={editMode ? "app-shell edit-mode" : "app-shell"}>
         <header className="topbar">
-          {view === "workspace" ? (
-            <WorkspaceNav
-              workspaces={workspaces}
-              activeWorkspaceId={activeWorkspace?.id}
-              editMode={editMode}
-              dispatch={dispatch}
-            />
-          ) : (
-            <div className="topbar-title">设置</div>
-          )}
+          <div className="topbar-left">
+            {view === "workspace" ? (
+              <>
+                <GlobalSearch state={state} />
+                <WorkspaceNav
+                  workspaces={workspaces}
+                  activeWorkspaceId={activeWorkspace?.id}
+                  editMode={editMode}
+                  dispatch={dispatch}
+                />
+              </>
+            ) : (
+              <div className="topbar-title">设置</div>
+            )}
+          </div>
+
+          {view === "workspace" ? <div className="topbar-center" /> : <div />}
 
           <div className="top-actions">
             {view === "workspace" && (
               <>
-                <GlobalSearch state={state} />
-                <button className="icon-button" type="button" title="撤销" onClick={undo} disabled={!canUndo}>
-                  <Undo2 size={18} />
+                <button className="icon-button" type="button" title="新建文件夹" onClick={createFolder} disabled={!activeWorkspace}>
+                  <Plus size={17} />
                 </button>
+                {editMode && (
+                  <>
+                    <button className="icon-button" type="button" title="撤销" onClick={undo} disabled={!canUndo}>
+                      <Undo2 size={18} />
+                    </button>
+                    <button className="icon-button" type="button" title="重做" onClick={redo} disabled={!canRedo}>
+                      <Redo2 size={18} />
+                    </button>
+                  </>
+                )}
                 <button
-                  className={editMode ? "icon-button active" : "icon-button"}
+                  className={editMode ? "edit-mode-button active" : "edit-mode-button"}
                   type="button"
                   title={editMode ? "退出编辑模式" : "编辑模式"}
                   onClick={() => setEditMode((value) => !value)}
                 >
-                  <Grip size={18} />
+                  <PencilLine size={18} />
+                  <span>编辑模式</span>
                 </button>
                 <button className="icon-button" type="button" title="设置" onClick={() => setView("settings")}>
                   <SettingsIcon size={18} />
+                </button>
+                <button className="theme-orb" type="button" title="切换主题" onClick={toggleTheme}>
+                  <SunMedium size={22} />
                 </button>
               </>
             )}
@@ -266,16 +302,6 @@ function App() {
         ) : (
           <main className="workspace-layout">
             <section className="folders-area" aria-label="Saved tab folders">
-              <div className="workspace-heading">
-                <div>
-                  <h2>{activeWorkspace?.name ?? "工作台"}</h2>
-                </div>
-                <button className="primary-button" type="button" onClick={createFolder}>
-                  <Plus size={17} />
-                  文件夹
-                </button>
-              </div>
-
               <SortableContext items={activeFolders.map((folder) => `folder-sort:${folder.id}`)} strategy={verticalListSortingStrategy}>
                 <div className="folder-stack">
                   {activeFolders.map((folder) => {
@@ -306,9 +332,51 @@ function App() {
         )}
       </div>
 
-      <DragOverlay>{dragOverlayText ? <div className="drag-overlay">{dragOverlayText}</div> : null}</DragOverlay>
+      <DragOverlay modifiers={activeDragType === "open-tab" ? [snapOpenTabOverlayToPointer] : undefined}>
+        {dragOverlayIcon ? (
+          <div className="drag-overlay open-tab-drag-overlay">
+            {dragOverlayIcon.src ? <img src={dragOverlayIcon.src} alt="" /> : <span>{dragOverlayIcon.fallback}</span>}
+          </div>
+        ) : dragOverlayText ? (
+          <div className="drag-overlay">{dragOverlayText}</div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
+}
+
+const snapOpenTabOverlayToPointer: Modifier = ({ activatorEvent, activeNodeRect, overlayNodeRect, transform }) => {
+  const point = getActivatorPoint(activatorEvent);
+  if (!point || !activeNodeRect || !overlayNodeRect) return transform;
+
+  return {
+    ...transform,
+    x: transform.x + point.x - activeNodeRect.left - overlayNodeRect.width / 2,
+    y: transform.y + point.y - activeNodeRect.top - overlayNodeRect.height / 2
+  };
+};
+
+function getActivatorPoint(event: Event | null): { x: number; y: number } | undefined {
+  if (!event) return undefined;
+  if (event instanceof MouseEvent || event instanceof PointerEvent) {
+    return { x: event.clientX, y: event.clientY };
+  }
+
+  if (event instanceof TouchEvent) {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    return touch ? { x: touch.clientX, y: touch.clientY } : undefined;
+  }
+
+  return undefined;
+}
+
+function getOpenTabFallback(tab: ChromeOpenTab): string {
+  const source = tab.title || tab.url;
+  const chinese = source.match(/[\u4e00-\u9fff]/u)?.[0];
+  if (chinese) return chinese;
+
+  const compact = source.replace(/^https?:\/\//i, "").replace(/^www\./i, "").trim();
+  return (compact.slice(0, 2) || "T").toUpperCase();
 }
 
 function getWorkspaceIdFromDropId(id: unknown): EntityId | undefined {
@@ -335,7 +403,6 @@ function getOpenTabInsertTarget(
 
 function getSavedTabDropTarget(
   overId: unknown,
-  _overData: Record<string, unknown> | undefined,
   savedTabs: Record<EntityId, SavedTab>,
   folders: Record<EntityId, { savedTabIds: EntityId[] }>
 ): { folderId: EntityId; index: number } | undefined {

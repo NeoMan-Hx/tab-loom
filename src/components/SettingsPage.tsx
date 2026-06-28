@@ -21,7 +21,7 @@ interface SettingsPageProps {
 
 const THEME_OPTIONS: Array<{ value: ThemeMode; label: string; description: string; icon: typeof Sun }> = [
   { value: "light", label: "白天", description: "始终使用明亮界面", icon: Sun },
-  { value: "dark", label: "夜间", description: "使用现有深色界面", icon: Moon },
+  { value: "dark", label: "夜间", description: "使用 Codex 风格深灰界面", icon: Moon },
   { value: "black", label: "纯黑", description: "OLED 友好的纯黑背景", icon: Moon },
   { value: "system", label: "跟随系统", description: "跟随系统外观偏好", icon: Monitor }
 ];
@@ -417,9 +417,7 @@ export function SettingsPage({ state, dispatch, onBack }: SettingsPageProps) {
               从远端拉取
             </button>
           </div>
-          {syncConfig.lastSyncedAt && (
-            <p className="settings-message">上次同步：{formatSyncTime(syncConfig.lastSyncedAt)}</p>
-          )}
+          {syncConfig.lastSyncedAt && <p className="settings-message">上次同步：{formatSyncTime(syncConfig.lastSyncedAt)}</p>}
           {syncConfig.lastSyncMessage && <p className="settings-message">{syncConfig.lastSyncMessage}</p>}
           {syncConfig.lastSyncError && <p className="settings-message settings-error">{syncConfig.lastSyncError}</p>}
           {syncMessage && <p className="settings-message">{syncMessage}</p>}

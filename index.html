@@ -4,12 +4,280 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tab Loom</title>
+    <script src="./theme-init.js"></script>
+    <style>
+      html,
+      body,
+      #root {
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      html {
+        background: #f8f9f7;
+        color-scheme: light;
+      }
+
+      html[data-theme="dark"] {
+        background: #0d0f12;
+        color-scheme: dark;
+      }
+
+      html[data-theme="black"] {
+        background: #000;
+        color-scheme: dark;
+      }
+
+      body {
+        background: inherit;
+      }
+
+      .boot-shell {
+        --boot-bg: #f8f9f7;
+        --boot-bg-glow: #fff;
+        --boot-surface: #fff;
+        --boot-soft: #eef2ee;
+        --boot-line: #d8dedb;
+        width: 100%;
+        height: 100vh;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background:
+          radial-gradient(circle at 55% 0%, color-mix(in srgb, var(--boot-bg-glow) 92%, transparent) 0, transparent 340px),
+          linear-gradient(180deg, color-mix(in srgb, var(--boot-bg-glow) 58%, transparent) 0, transparent 240px),
+          var(--boot-bg);
+      }
+
+      html[data-theme="dark"] .boot-shell {
+        --boot-bg: #0d0f12;
+        --boot-bg-glow: #14171c;
+        --boot-surface: #171a1f;
+        --boot-soft: #20242b;
+        --boot-line: #2b3139;
+      }
+
+      html[data-theme="black"] .boot-shell {
+        --boot-bg: #000;
+        --boot-bg-glow: #030303;
+        --boot-surface: #080808;
+        --boot-soft: #111;
+        --boot-line: #202020;
+      }
+
+      .boot-topbar {
+        height: 82px;
+        border-bottom: 1px solid var(--boot-line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 16px 28px 13px;
+      }
+
+      .boot-left,
+      .boot-actions,
+      .boot-pill-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .boot-search {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: var(--boot-soft);
+      }
+
+      .boot-pill {
+        width: 112px;
+        height: 44px;
+        border-radius: 10px;
+        background: var(--boot-soft);
+      }
+
+      .boot-action {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: var(--boot-soft);
+      }
+
+      .boot-layout {
+        min-height: 0;
+        flex: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(256px, 22vw, 340px);
+        padding: 0 26px 0 30px;
+      }
+
+      .boot-board {
+        min-width: 0;
+        padding: 22px 34px 48px 2px;
+      }
+
+      .boot-folder {
+        border-top: 1px solid var(--boot-line);
+        padding: 20px 0 28px;
+      }
+
+      .boot-folder:first-child {
+        border-top: 0;
+      }
+
+      .boot-title {
+        width: 180px;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--boot-soft);
+        margin-bottom: 18px;
+      }
+
+      .boot-card-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(160px, 1fr));
+        gap: 14px;
+        padding-left: 31px;
+      }
+
+      .boot-card {
+        height: 68px;
+        border: 1px solid var(--boot-line);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--boot-surface) 80%, transparent);
+      }
+
+      .boot-lane {
+        border-left: 1px solid var(--boot-line);
+        padding: 24px 10px 42px 24px;
+      }
+
+      .boot-lane-search,
+      .boot-lane-button {
+        height: 44px;
+        border-radius: 999px;
+        background: var(--boot-soft);
+        margin-bottom: 14px;
+      }
+
+      .boot-lane-button {
+        border-radius: 7px;
+      }
+
+      .boot-row {
+        height: 58px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--boot-soft) 62%, transparent);
+        margin-top: 6px;
+      }
+
+      .boot-search,
+      .boot-pill,
+      .boot-action,
+      .boot-title,
+      .boot-card,
+      .boot-lane-search,
+      .boot-lane-button,
+      .boot-row {
+        opacity: 0.68;
+        animation: bootPulse 1400ms ease-in-out infinite;
+      }
+
+      @keyframes bootPulse {
+        0%,
+        100% {
+          opacity: 0.5;
+        }
+
+        50% {
+          opacity: 0.82;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-search,
+        .boot-pill,
+        .boot-action,
+        .boot-title,
+        .boot-card,
+        .boot-lane-search,
+        .boot-lane-button,
+        .boot-row {
+          animation: none;
+        }
+      }
+
+      @media (width <= 860px) {
+        .boot-layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: minmax(0, 1fr) auto;
+          padding: 0 16px;
+        }
+
+        .boot-board {
+          padding: 14px 0 22px;
+        }
+
+        .boot-card-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          padding-left: 0;
+        }
+
+        .boot-lane {
+          display: none;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root">
-      <main>
-        <h1>Tab Loom is loading</h1>
-        <p>If this stays visible, load the extension from chrome://extensions instead of opening this HTML file directly.</p>
+      <main class="boot-shell" aria-label="Loading Tab Loom">
+        <header class="boot-topbar">
+          <div class="boot-left">
+            <div class="boot-search"></div>
+            <div class="boot-pill-row">
+              <div class="boot-pill"></div>
+              <div class="boot-pill"></div>
+              <div class="boot-pill"></div>
+            </div>
+          </div>
+          <div class="boot-actions">
+            <div class="boot-action"></div>
+            <div class="boot-action"></div>
+            <div class="boot-action"></div>
+          </div>
+        </header>
+        <section class="boot-layout">
+          <div class="boot-board">
+            <section class="boot-folder">
+              <div class="boot-title"></div>
+              <div class="boot-card-grid">
+                <div class="boot-card"></div>
+                <div class="boot-card"></div>
+                <div class="boot-card"></div>
+              </div>
+            </section>
+            <section class="boot-folder">
+              <div class="boot-title"></div>
+              <div class="boot-card-grid">
+                <div class="boot-card"></div>
+                <div class="boot-card"></div>
+              </div>
+            </section>
+          </div>
+          <aside class="boot-lane">
+            <div class="boot-lane-search"></div>
+            <div class="boot-lane-button"></div>
+            <div class="boot-row"></div>
+            <div class="boot-row"></div>
+            <div class="boot-row"></div>
+          </aside>
+        </section>
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>

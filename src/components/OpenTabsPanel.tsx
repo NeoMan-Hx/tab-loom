@@ -1,6 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
-import { ChevronDown, ChevronRight, FolderPlus, GripVertical, Pin } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, FolderPlus, GripVertical, Pin, Search, X } from "lucide-react";
+import { useMemo, useState, type MouseEvent } from "react";
+import { closeOpenTab } from "../services/chromeTabs";
 import { getDomain } from "../services/sorting";
 import type { ChromeOpenTab, OpenTabGroup } from "../types";
 
@@ -39,31 +40,34 @@ export function OpenTabsPanel({ groups, loading, onSaveAll }: OpenTabsPanelProps
   return (
     <aside className="open-tabs-panel" aria-label="Open browser tabs">
       <div className="open-tabs-toolbar">
-        <input
-          className="search-input"
-          value={query}
-          placeholder="搜索当前标签页"
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <button className="icon-button subtle" type="button" title="保存全部为新文件夹" disabled={totalTabs === 0} onClick={onSaveAll}>
-          <FolderPlus size={16} />
+        <label className="open-tabs-search">
+          <Search size={18} />
+          <input
+            className="search-input"
+            value={query}
+            placeholder="搜索已打开的标签页"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <button className="open-tabs-save-all" type="button" disabled={totalTabs === 0} onClick={onSaveAll}>
+          <FolderPlus size={18} />
+          <span>保存全部 ({totalTabs})</span>
         </button>
       </div>
 
       <div className="open-group-list">
         {filteredGroups.length === 0 ? (
-          <div className="open-tabs-empty">{loading ? "刷新中" : "暂无可保存标签页"}</div>
+          <div className="open-tabs-empty">{loading ? "刷新中..." : "暂无可保存标签页"}</div>
         ) : (
           filteredGroups.map((group) => {
             const isCollapsed = collapsed.has(group.id);
             return (
               <section key={group.id} className="open-group">
                 <button className="open-group-header" type="button" onClick={() => toggle(group.id)}>
-                  {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                  {isCollapsed ? <ChevronRight size={17} /> : <ChevronDown size={17} />}
                   <span className="group-color" style={{ backgroundColor: toGroupColor(group.color) }} />
-                  <span>{group.title}</span>
-                  {group.subtitle && <small>{group.subtitle}</small>}
-                  <em>{group.tabs.length}</em>
+                  <span className="open-group-title">{group.title}</span>
+                  <em>({group.tabs.length})</em>
                 </button>
 
                 {!isCollapsed && (
@@ -83,19 +87,19 @@ export function OpenTabsPanel({ groups, loading, onSaveAll }: OpenTabsPanelProps
 }
 
 function OpenTabRow({ tab }: { tab: ChromeOpenTab }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `open:${tab.id}`,
     data: { type: "open-tab", tab }
   });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      }
-    : undefined;
+  const closeTab = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void closeOpenTab(tab);
+  };
 
   return (
-    <div ref={setNodeRef} className={isDragging ? "open-tab-row dragging" : "open-tab-row"} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} className={isDragging ? "open-tab-row dragging" : "open-tab-row"} {...attributes} {...listeners}>
       <GripVertical size={16} className="drag-grip" />
       <div className="open-tab-favicon">
         {tab.favIconUrl ? <img src={tab.favIconUrl} alt="" /> : <span>{getDomain(tab.url).slice(0, 1).toUpperCase()}</span>}
@@ -104,7 +108,19 @@ function OpenTabRow({ tab }: { tab: ChromeOpenTab }) {
         <span title={tab.title}>{tab.title}</span>
         <small>{getDomain(tab.url)}</small>
       </div>
-      {tab.pinned && <Pin size={14} className="pin-icon" />}
+      {tab.pinned ? (
+        <Pin size={15} className="pin-icon" />
+      ) : (
+        <button
+          className="open-tab-close"
+          type="button"
+          title="Close tab"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={closeTab}
+        >
+          <X size={14} />
+        </button>
+      )}
     </div>
   );
 }

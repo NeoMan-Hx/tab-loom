@@ -19,11 +19,26 @@ describe("storage history", () => {
       appReducer(state, { type: "setThemeMode", themeMode: index % 2 === 0 ? "dark" : "light" })
     );
 
-    await saveStoredData({ state, history });
+    await saveStoredData({ state, history, future: [] });
     const loaded = await loadStoredData();
 
     expect(loaded.state.settings.activeWorkspaceId).toBe(state.settings.activeWorkspaceId);
     expect(loaded.history).toHaveLength(10);
+    expect(loaded.future).toEqual([]);
+  });
+
+  it("saves and loads at most ten redo versions", async () => {
+    Object.defineProperty(globalThis, "chrome", { value: undefined, configurable: true });
+    Object.defineProperty(globalThis, "localStorage", { value: createMemoryStorage(), configurable: true });
+    const state = createDefaultState();
+    const future = Array.from({ length: 12 }, (_, index) =>
+      appReducer(state, { type: "setThemeMode", themeMode: index % 2 === 0 ? "dark" : "light" })
+    );
+
+    await saveStoredData({ state, history: [], future });
+    const loaded = await loadStoredData();
+
+    expect(loaded.future).toHaveLength(10);
   });
 
   it("loads legacy direct AppState values", async () => {
@@ -37,6 +52,18 @@ describe("storage history", () => {
 
     expect(loaded.state.schemaVersion).toBe(state.schemaVersion);
     expect(loaded.history).toEqual([]);
+    expect(loaded.future).toEqual([]);
+  });
+
+  it("mirrors the theme mode for first-paint initialization", async () => {
+    Object.defineProperty(globalThis, "chrome", { value: undefined, configurable: true });
+    const memoryStorage = createMemoryStorage();
+    Object.defineProperty(globalThis, "localStorage", { value: memoryStorage, configurable: true });
+    const state = appReducer(createDefaultState(), { type: "setThemeMode", themeMode: "dark" });
+
+    await saveStoredData({ state, history: [], future: [] });
+
+    expect(memoryStorage.getItem("tabLoomThemeMode")).toBe("dark");
   });
 });
 

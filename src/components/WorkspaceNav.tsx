@@ -31,7 +31,7 @@ export function WorkspaceNav({ workspaces, activeWorkspaceId, editMode, dispatch
   }, [editMode]);
 
   const createWorkspace = () => {
-    const name = prompt("新工作组名称");
+    const name = prompt("新工作区名称");
     if (name) dispatch({ type: "createWorkspace", name });
   };
 
@@ -46,7 +46,7 @@ export function WorkspaceNav({ workspaces, activeWorkspaceId, editMode, dispatch
 
   const deleteWorkspace = () => {
     if (!activeWorkspace || workspaces.length === 1) return;
-    if (confirm(`删除工作组“${activeWorkspace.name}”？`)) {
+    if (confirm(`删除工作区“${activeWorkspace.name}”？`)) {
       dispatch({ type: "deleteWorkspace", workspaceId: activeWorkspace.id });
       setEditorOpen(false);
     }
@@ -70,25 +70,25 @@ export function WorkspaceNav({ workspaces, activeWorkspaceId, editMode, dispatch
 
       {editMode && (
         <div className="workspace-tools">
-          <button className="icon-button subtle" type="button" title="新建工作组" onClick={createWorkspace}>
-            <Plus size={17} />
+          <button className="workspace-tool-button" type="button" title="新建工作区" onClick={createWorkspace}>
+            <Plus size={19} />
           </button>
-          <button className="icon-button subtle" type="button" title="编辑工作组" onClick={() => setEditorOpen((value) => !value)}>
-            <Edit3 size={16} />
+          <button className="workspace-tool-button" type="button" title="编辑工作区" onClick={() => setEditorOpen((value) => !value)}>
+            <Edit3 size={17} />
           </button>
-          <button className="icon-button subtle danger" type="button" title="删除工作组" onClick={deleteWorkspace} disabled={workspaces.length === 1}>
-            <Trash2 size={16} />
+          <button className="workspace-tool-button danger" type="button" title="删除工作区" onClick={deleteWorkspace} disabled={workspaces.length === 1}>
+            <Trash2 size={17} />
           </button>
         </div>
       )}
 
       {editMode && editorOpen && activeWorkspace && (
-        <div className="workspace-editor">
+        <div className="workspace-editor popover-panel">
           <label>
             名称
             <input value={draftName} onChange={(event) => setDraftName(event.target.value)} />
           </label>
-          <div className="workspace-icon-grid" aria-label="工作组图标">
+          <div className="workspace-icon-grid" aria-label="工作区图标">
             {WORKSPACE_ICON_OPTIONS.map((option) => (
               <button
                 key={option.key}
@@ -102,7 +102,7 @@ export function WorkspaceNav({ workspaces, activeWorkspaceId, editMode, dispatch
             ))}
           </div>
           <div className="menu-actions">
-            <button className="secondary-button" type="button" onClick={() => setEditorOpen(false)}>
+            <button className="secondary-button compact" type="button" onClick={() => setEditorOpen(false)}>
               取消
             </button>
             <button className="primary-button compact" type="button" onClick={saveWorkspace}>

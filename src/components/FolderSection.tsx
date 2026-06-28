@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronRight, Edit3, ExternalLink, GripVertical, MoreHorizontal, MoveRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit3, Folder as FolderIcon, GripVertical, MoreHorizontal, MoveRight, Play, Trash2 } from "lucide-react";
 import type { Dispatch } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppAction } from "../state/appState";
@@ -111,38 +111,40 @@ export function FolderSection({
           </button>
         )}
 
-        <button className="icon-button subtle" type="button" title="折叠文件夹" onClick={() => dispatch({ type: "toggleFolder", folderId: folder.id })}>
+        <button className="icon-button subtle folder-toggle" type="button" title="折叠文件夹" onClick={() => dispatch({ type: "toggleFolder", folderId: folder.id })}>
           {folder.collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
         </button>
 
         <div className={editMode ? "folder-title folder-drag-source" : "folder-title"} {...(editMode ? listeners : {})}>
+          <FolderIcon className="folder-title-icon" size={22} />
           <h3>{folder.name}</h3>
-          <span>{tabs.length} tabs</span>
+          <span>{tabs.length} 个标签页</span>
         </div>
 
         <div className="folder-controls" ref={menuRef}>
           <button
-            className="icon-button subtle"
+            className="folder-open-button"
             type="button"
             title="打开全部"
             disabled={tabs.length === 0}
             onClick={() => void openSavedTabs(tabs, { mode: openFolderMode, groupTitle: folder.name })}
           >
-            <ExternalLink size={16} />
+            <Play size={15} />
+            <span>打开全部</span>
           </button>
           <button className="icon-button subtle" type="button" title="文件夹操作" onClick={() => setMenuOpen((value) => !value)}>
-            <MoreHorizontal size={17} />
+            <MoreHorizontal size={18} />
           </button>
 
           {menuOpen && (
             <div className="folder-menu popover-panel">
               <button className="menu-action-button" type="button" onClick={rename}>
-                <Edit3 size={14} />
+                <Edit3 size={15} />
                 重命名
               </button>
               <button className="menu-action-button" type="button" disabled={targetWorkspaces.length === 0} onClick={() => setMoveMenuOpen((value) => !value)}>
-                <MoveRight size={14} />
-                移动到
+                <MoveRight size={15} />
+                移动到工作区
               </button>
               {moveMenuOpen && (
                 <div className="folder-submenu popover-panel">
@@ -158,8 +160,8 @@ export function FolderSection({
                 </div>
               )}
               <button className="menu-action-button danger" type="button" onClick={remove}>
-                <Trash2 size={14} />
-                删除
+                <Trash2 size={15} />
+                删除文件夹
               </button>
             </div>
           )}
@@ -202,8 +204,6 @@ function EmptyFolderInsertDropZone({ folderId }: { folderId: EntityId }) {
       ref={setNodeRef}
       className={["folder-empty-insert-zone", isOver ? "over" : ""].filter(Boolean).join(" ")}
       aria-label="插入位置"
-    >
-      <span>释放到这里保存</span>
-    </div>
+    />
   );
 }

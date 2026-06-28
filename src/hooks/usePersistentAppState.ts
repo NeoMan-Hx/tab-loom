@@ -12,23 +12,28 @@ const MAX_HISTORY = 10;
 interface StoreState {
   state: AppState;
   history: AppState[];
+  future: AppState[];
 }
 
 type StoreAction =
-  | { type: "load"; state: AppState; history: AppState[] }
+  | { type: "load"; state: AppState; history: AppState[]; future: AppState[] }
   | { type: "app"; action: AppAction }
-  | { type: "undo" };
+  | { type: "undo" }
+  | { type: "redo" };
 
 export function usePersistentAppState(): {
   state: AppState;
   dispatch: Dispatch<AppAction>;
   status: StorageStatus;
   canUndo: boolean;
+  canRedo: boolean;
   undo: () => void;
+  redo: () => void;
 } {
   const [store, dispatchStore] = useReducer(storeReducer, undefined, () => ({
     state: createDefaultState(),
-    history: []
+    history: [],
+    future: []
   }));
   const [status, setStatus] = useState<StorageStatus>("loading");
   const hasLoaded = useRef(false);
@@ -39,7 +44,7 @@ export function usePersistentAppState(): {
     loadStoredData()
       .then((storedData) => {
         if (cancelled) return;
-        dispatchStore({ type: "load", state: storedData.state, history: storedData.history });
+        dispatchStore({ type: "load", state: storedData.state, history: storedData.history, future: storedData.future });
         hasLoaded.current = true;
         setStatus("ready");
       })
@@ -67,7 +72,19 @@ export function usePersistentAppState(): {
     dispatchStore({ type: "undo" });
   }, []);
 
-  return { state: store.state, dispatch: stableDispatch, status, canUndo: store.history.length > 0, undo };
+  const redo = useCallback(() => {
+    dispatchStore({ type: "redo" });
+  }, []);
+
+  return {
+    state: store.state,
+    dispatch: stableDispatch,
+    status,
+    canUndo: store.history.length > 0,
+    canRedo: store.future.length > 0,
+    undo,
+    redo
+  };
 }
 
 function storeReducer(store: StoreState, action: StoreAction): StoreState {
@@ -75,12 +92,18 @@ function storeReducer(store: StoreState, action: StoreAction): StoreState {
     case "load":
       return {
         state: action.state,
-        history: action.history.slice(0, MAX_HISTORY)
+        history: action.history.slice(0, MAX_HISTORY),
+        future: action.future.slice(0, MAX_HISTORY)
       };
 
     case "undo": {
       const [previous, ...rest] = store.history;
-      return previous ? { state: previous, history: rest } : store;
+      return previous ? { state: previous, history: rest, future: [store.state, ...store.future].slice(0, MAX_HISTORY) } : store;
+    }
+
+    case "redo": {
+      const [next, ...rest] = store.future;
+      return next ? { state: next, history: [store.state, ...store.history].slice(0, MAX_HISTORY), future: rest } : store;
     }
 
     case "app": {
@@ -89,7 +112,8 @@ function storeReducer(store: StoreState, action: StoreAction): StoreState {
 
       return {
         state: nextState,
-        history: isUndoableAction(action.action) ? [store.state, ...store.history].slice(0, MAX_HISTORY) : store.history
+        history: isUndoableAction(action.action) ? [store.state, ...store.history].slice(0, MAX_HISTORY) : store.history,
+        future: []
       };
     }
   }

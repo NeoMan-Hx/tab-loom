@@ -10,7 +10,7 @@ describe("import/export", () => {
 
     expect(imported.schemaVersion).toBe(SCHEMA_VERSION);
     expect(imported.settings.activeWorkspaceId).toBe(state.settings.activeWorkspaceId);
-    expect(imported.settings.themeMode).toBe("system");
+    expect(imported.settings.themeMode).toBe("light");
     expect(imported.settings.openSavedTabMode).toBe("new-tab");
     expect(imported.settings.showPinnedOpenTabs).toBe(true);
     expect(imported.settings.openFolderMode).toBe("direct");

@@ -38,49 +38,59 @@ export function GlobalSearch({ state }: GlobalSearchProps) {
     };
   }, [expanded]);
 
+  const openSearch = () => {
+    setExpanded(true);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   return (
     <div className={expanded ? "global-search expanded" : "global-search"} ref={rootRef}>
-      <button className="icon-button subtle" type="button" title="搜索全部保存标签页" onClick={() => setExpanded(true)}>
-        <Search size={17} />
-      </button>
+      <div className="global-search-control">
+        <button
+          className="global-search-trigger"
+          type="button"
+          title="搜索全部保存标签页"
+          aria-expanded={expanded}
+          onClick={openSearch}
+        >
+          <Search size={22} />
+        </button>
+        <input
+          ref={inputRef}
+          className="global-search-inline-input"
+          value={query}
+          placeholder="搜索全部保存标签页"
+          tabIndex={expanded ? 0 : -1}
+          onFocus={() => setExpanded(true)}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
 
-      {expanded && (
+      {expanded && showResults && (
         <div className="global-search-box popover-panel">
-          <div className="global-search-input">
-            <Search size={15} />
-            <input
-              ref={inputRef}
-              value={query}
-              placeholder="搜索全部保存标签页"
-              onChange={(event) => setQuery(event.target.value)}
-            />
+          <div className="global-search-results">
+            {results.length === 0 ? (
+              <div className="search-empty">没有匹配的标签页</div>
+            ) : (
+              results.map((result) => (
+                <button
+                  key={result.id}
+                  className="search-result"
+                  type="button"
+                  onClick={() => {
+                    setExpanded(false);
+                    setQuery("");
+                    void openSavedTab(result.tab, state.settings.openSavedTabMode);
+                  }}
+                >
+                  <span className="search-result-title">{result.tab.title}</span>
+                  <span className="search-result-meta">
+                    {result.workspaceName} / {result.folderName} / {result.domain}
+                  </span>
+                </button>
+              ))
+            )}
           </div>
-
-          {showResults && (
-            <div className="global-search-results">
-              {results.length === 0 ? (
-                <div className="search-empty">没有匹配的标签页</div>
-              ) : (
-                results.map((result) => (
-                  <button
-                    key={result.id}
-                    className="search-result"
-                    type="button"
-                    onClick={() => {
-                      setExpanded(false);
-                      setQuery("");
-                      void openSavedTab(result.tab, state.settings.openSavedTabMode);
-                    }}
-                  >
-                    <span className="search-result-title">{result.tab.title}</span>
-                    <span className="search-result-meta">
-                      {result.workspaceName} / {result.folderName} / {result.domain}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>
