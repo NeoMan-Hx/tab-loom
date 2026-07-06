@@ -1,4 +1,19 @@
-import type { AppState, ExportFile, Folder, OpenFolderMode, OpenSavedTabMode, SavedTab, ThemeMode, Workspace } from "../types";
+import type {
+  AppState,
+  ColorThemeKey,
+  CustomThemeColorKey,
+  CustomThemeColors,
+  ExportFile,
+  FontFamilyKey,
+  Folder,
+  OpenFolderMode,
+  OpenSavedTabMode,
+  SavedTab,
+  SavedTabCardDisplayMode,
+  SavedTabTitleLineMode,
+  ThemeMode,
+  Workspace
+} from "../types";
 import { SCHEMA_VERSION } from "../types";
 import { createId, nowIso } from "./id";
 import { cloneDefaultSortViews } from "./sorting";
@@ -50,7 +65,7 @@ export function migrateAppState(value: unknown): AppState {
     throw new Error("导入数据必须是对象。");
   }
 
-  if (![1, 2, 3, 4, SCHEMA_VERSION].includes(Number(value.schemaVersion))) {
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, SCHEMA_VERSION].includes(Number(value.schemaVersion))) {
     throw new Error(`不支持的数据版本：${String(value.schemaVersion)}`);
   }
 
@@ -63,9 +78,15 @@ export function migrateAppState(value: unknown): AppState {
   const settings = {
     activeWorkspaceId: typeof rawSettings.activeWorkspaceId === "string" ? rawSettings.activeWorkspaceId : "",
     themeMode: schemaVersion >= 3 ? normalizeThemeMode(rawSettings.themeMode, "system") : "light",
+    colorThemeKey: normalizeColorThemeKey(rawSettings.colorThemeKey, "vscode"),
     openSavedTabMode: normalizeOpenSavedTabMode(rawSettings.openSavedTabMode, "new-tab"),
     showPinnedOpenTabs: typeof rawSettings.showPinnedOpenTabs === "boolean" ? rawSettings.showPinnedOpenTabs : true,
-    openFolderMode: normalizeOpenFolderMode(rawSettings.openFolderMode, "direct")
+    openFolderMode: normalizeOpenFolderMode(rawSettings.openFolderMode, "direct"),
+    savedTabCardDisplayMode: normalizeSavedTabCardDisplayMode(rawSettings.savedTabCardDisplayMode, "title-link"),
+    savedTabTitleLineMode: normalizeSavedTabTitleLineMode(rawSettings.savedTabTitleLineMode, "single"),
+    fontFamilyKey: normalizeFontFamilyKey(rawSettings.fontFamilyKey, "system"),
+    customThemeEnabled: typeof rawSettings.customThemeEnabled === "boolean" ? rawSettings.customThemeEnabled : false,
+    customThemeColors: normalizeCustomThemeColors(rawSettings.customThemeColors)
   };
 
   const workspaces = Object.fromEntries(
@@ -127,9 +148,15 @@ export function assertAppState(value: unknown): asserts value is AppState {
     !isRecord(value.settings) ||
     typeof value.settings.activeWorkspaceId !== "string" ||
     !isThemeMode(value.settings.themeMode) ||
+    !isColorThemeKey(value.settings.colorThemeKey) ||
     !isOpenSavedTabMode(value.settings.openSavedTabMode) ||
     typeof value.settings.showPinnedOpenTabs !== "boolean" ||
-    !isOpenFolderMode(value.settings.openFolderMode)
+    !isOpenFolderMode(value.settings.openFolderMode) ||
+    !isSavedTabCardDisplayMode(value.settings.savedTabCardDisplayMode) ||
+    !isSavedTabTitleLineMode(value.settings.savedTabTitleLineMode) ||
+    !isFontFamilyKey(value.settings.fontFamilyKey) ||
+    typeof value.settings.customThemeEnabled !== "boolean" ||
+    !isCustomThemeColors(value.settings.customThemeColors)
   ) {
     throw new Error("导入数据缺少有效的应用设置。");
   }
@@ -382,6 +409,70 @@ function normalizeThemeMode(value: unknown, fallback: ThemeMode): ThemeMode {
   return isThemeMode(value) ? value : fallback;
 }
 
+function isColorThemeKey(value: unknown): value is ColorThemeKey {
+  return value === "vscode" || value === "darcula" || value === "one-dark" || value === "github" || value === "solarized" || value === "nord";
+}
+
+function normalizeColorThemeKey(value: unknown, fallback: ColorThemeKey): ColorThemeKey {
+  return isColorThemeKey(value) ? value : fallback;
+}
+
+const CUSTOM_THEME_COLOR_KEYS: CustomThemeColorKey[] = [
+  "background",
+  "backgroundGlow",
+  "surface",
+  "surfaceSoft",
+  "surfaceHover",
+  "surfaceSelected",
+  "line",
+  "lineSoft",
+  "text",
+  "textSoft",
+  "muted",
+  "accent",
+  "accentStrong",
+  "accentSoft",
+  "accentText",
+  "topbar",
+  "rightSidebar",
+  "rightSearch",
+  "savedCard",
+  "popover"
+];
+
+function isCustomThemeColorKey(value: unknown): value is CustomThemeColorKey {
+  return typeof value === "string" && CUSTOM_THEME_COLOR_KEYS.includes(value as CustomThemeColorKey);
+}
+
+function normalizeCustomThemeColors(value: unknown): CustomThemeColors {
+  if (!isRecord(value)) return {};
+
+  const colors: CustomThemeColors = {};
+  for (const [key, color] of Object.entries(value)) {
+    if (isCustomThemeColorKey(key) && typeof color === "string" && isHexColor(color)) {
+      colors[key] = normalizeHexColor(color);
+    }
+  }
+  return colors;
+}
+
+function isCustomThemeColors(value: unknown): value is CustomThemeColors {
+  if (!isRecord(value)) return false;
+  return Object.entries(value).every(([key, color]) => isCustomThemeColorKey(key) && typeof color === "string" && isHexColor(color));
+}
+
+function isHexColor(value: string): boolean {
+  return /^#[0-9a-fA-F]{3}$/.test(value.trim()) || /^#[0-9a-fA-F]{6}$/.test(value.trim());
+}
+
+function normalizeHexColor(value: string): string {
+  const trimmed = value.trim();
+  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+    return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase();
+  }
+  return trimmed.toLowerCase();
+}
+
 function isOpenSavedTabMode(value: unknown): value is OpenSavedTabMode {
   return value === "new-tab" || value === "current-tab";
 }
@@ -396,6 +487,30 @@ function isOpenFolderMode(value: unknown): value is OpenFolderMode {
 
 function normalizeOpenFolderMode(value: unknown, fallback: OpenFolderMode): OpenFolderMode {
   return isOpenFolderMode(value) ? value : fallback;
+}
+
+function isSavedTabCardDisplayMode(value: unknown): value is SavedTabCardDisplayMode {
+  return value === "title-only" || value === "title-link";
+}
+
+function normalizeSavedTabCardDisplayMode(value: unknown, fallback: SavedTabCardDisplayMode): SavedTabCardDisplayMode {
+  return isSavedTabCardDisplayMode(value) ? value : fallback;
+}
+
+function isSavedTabTitleLineMode(value: unknown): value is SavedTabTitleLineMode {
+  return value === "single" || value === "double";
+}
+
+function normalizeSavedTabTitleLineMode(value: unknown, fallback: SavedTabTitleLineMode): SavedTabTitleLineMode {
+  return isSavedTabTitleLineMode(value) ? value : fallback;
+}
+
+function isFontFamilyKey(value: unknown): value is FontFamilyKey {
+  return value === "system" || value === "modern-sans" || value === "rounded" || value === "serif" || value === "mono";
+}
+
+function normalizeFontFamilyKey(value: unknown, fallback: FontFamilyKey): FontFamilyKey {
+  return isFontFamilyKey(value) ? value : fallback;
 }
 
 function isValidHttpUrl(value: string): boolean {

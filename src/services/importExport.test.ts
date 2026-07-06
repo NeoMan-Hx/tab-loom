@@ -11,9 +11,15 @@ describe("import/export", () => {
     expect(imported.schemaVersion).toBe(SCHEMA_VERSION);
     expect(imported.settings.activeWorkspaceId).toBe(state.settings.activeWorkspaceId);
     expect(imported.settings.themeMode).toBe("light");
+    expect(imported.settings.colorThemeKey).toBe("vscode");
     expect(imported.settings.openSavedTabMode).toBe("new-tab");
     expect(imported.settings.showPinnedOpenTabs).toBe(true);
     expect(imported.settings.openFolderMode).toBe("direct");
+    expect(imported.settings.savedTabCardDisplayMode).toBe("title-link");
+    expect(imported.settings.savedTabTitleLineMode).toBe("single");
+    expect(imported.settings.fontFamilyKey).toBe("system");
+    expect(imported.settings.customThemeEnabled).toBe(false);
+    expect(imported.settings.customThemeColors).toEqual({});
   });
 
   it("migrates legacy workspaces with a default icon and light theme", () => {
@@ -64,9 +70,42 @@ describe("import/export", () => {
 
     expect(imported.schemaVersion).toBe(SCHEMA_VERSION);
     expect(imported.settings.themeMode).toBe("dark");
+    expect(imported.settings.colorThemeKey).toBe("vscode");
     expect(imported.settings.openSavedTabMode).toBe("new-tab");
     expect(imported.settings.showPinnedOpenTabs).toBe(true);
     expect(imported.settings.openFolderMode).toBe("direct");
+    expect(imported.settings.savedTabCardDisplayMode).toBe("title-link");
+    expect(imported.settings.savedTabTitleLineMode).toBe("single");
+    expect(imported.settings.fontFamilyKey).toBe("system");
+    expect(imported.settings.customThemeEnabled).toBe(false);
+    expect(imported.settings.customThemeColors).toEqual({});
+  });
+
+  it("migrates and normalizes custom theme colors", () => {
+    const state = createDefaultState();
+    const legacy = {
+      ...state,
+      schemaVersion: 9,
+      settings: {
+        ...state.settings,
+        customThemeEnabled: true,
+        customThemeColors: {
+          accent: "#0af",
+          topbar: "#123456",
+          unknown: "#ffffff",
+          text: "invalid"
+        }
+      }
+    };
+
+    const imported = parseImportedState(JSON.stringify(legacy));
+
+    expect(imported.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(imported.settings.customThemeEnabled).toBe(true);
+    expect(imported.settings.customThemeColors).toEqual({
+      accent: "#00aaff",
+      topbar: "#123456"
+    });
   });
 
   it("appends native Tab Loom imports without replacing existing data", () => {

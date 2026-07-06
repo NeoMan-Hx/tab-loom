@@ -21,7 +21,11 @@ import type { StorageStatus } from "./usePersistentAppState";
 const LOCAL_UPLOAD_DEBOUNCE_MS = 5000;
 const STARTUP_REMOTE_CHECK_DELAY_MS = 3000;
 
-export function useAutoSync(state: AppState, dispatch: Dispatch<AppAction>, storageStatus: StorageStatus): void {
+export interface AutoSyncControls {
+  uploadNow: () => Promise<void>;
+}
+
+export function useAutoSync(state: AppState, dispatch: Dispatch<AppAction>, storageStatus: StorageStatus): AutoSyncControls {
   const [config, setConfig] = useState<SyncConfig | null>(null);
   const stateRef = useRef(state);
   const configRef = useRef<SyncConfig | null>(null);
@@ -163,4 +167,11 @@ export function useAutoSync(state: AppState, dispatch: Dispatch<AppAction>, stor
       window.clearInterval(interval);
     };
   }, [config, runRemoteCheck, storageStatus]);
+
+  const uploadNow = useCallback(async () => {
+    if (storageStatus !== "ready") return;
+    await runAutoUpload();
+  }, [runAutoUpload, storageStatus]);
+
+  return { uploadNow };
 }

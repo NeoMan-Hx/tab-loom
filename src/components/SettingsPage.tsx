@@ -1,4 +1,4 @@
-import { ArrowLeft, Cloud, Download, DownloadCloud, GitBranch, Moon, Monitor, Save, Sun, Upload, UploadCloud } from "lucide-react";
+import { ArrowLeft, ChevronRight, Cloud, Download, DownloadCloud, GitBranch, Moon, Monitor, Save, Sun, Upload, UploadCloud } from "lucide-react";
 import type { ChangeEvent, Dispatch } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppAction } from "../state/appState";
@@ -11,7 +11,17 @@ import {
   uploadStateToSyncTarget
 } from "../services/sync";
 import type { SyncConfig, SyncProvider } from "../services/sync";
-import type { AppState, OpenFolderMode, OpenSavedTabMode, ThemeMode } from "../types";
+import type {
+  AppState,
+  ColorThemeKey,
+  CustomThemeColorKey,
+  FontFamilyKey,
+  OpenFolderMode,
+  OpenSavedTabMode,
+  SavedTabCardDisplayMode,
+  SavedTabTitleLineMode,
+  ThemeMode
+} from "../types";
 
 interface SettingsPageProps {
   state: AppState;
@@ -26,6 +36,48 @@ const THEME_OPTIONS: Array<{ value: ThemeMode; label: string; description: strin
   { value: "system", label: "跟随系统", description: "跟随系统外观偏好", icon: Monitor }
 ];
 
+const COLOR_THEME_OPTIONS: Array<{
+  value: ColorThemeKey;
+  label: string;
+  description: string;
+  swatches: [string, string, string];
+}> = [
+  { value: "vscode", label: "VS Code", description: "清爽蓝色强调，接近 VS Code 的编辑器气质。", swatches: ["#007acc", "#1f6feb", "#f6f8fa"] },
+  { value: "darcula", label: "Darcula", description: "JetBrains 风格的琥珀强调和深灰层次。", swatches: ["#cc7832", "#a9b7c6", "#2b2b2b"] },
+  { value: "one-dark", label: "One Dark", description: "Atom / One Dark 风格的紫蓝强调。", swatches: ["#61afef", "#c678dd", "#282c34"] },
+  { value: "github", label: "GitHub Light", description: "类似 GitHub 编辑区的中性浅色和蓝色强调。", swatches: ["#0969da", "#6e7781", "#ffffff"] },
+  { value: "solarized", label: "Solarized", description: "Solarized 的低对比青蓝与暖色背景。", swatches: ["#268bd2", "#859900", "#fdf6e3"] },
+  { value: "nord", label: "Nord", description: "冷静的极地蓝灰，暗色模式下尤其柔和。", swatches: ["#88c0d0", "#5e81ac", "#2e3440"] }
+];
+
+const CUSTOM_THEME_COLOR_FIELDS: Array<{
+  key: CustomThemeColorKey;
+  label: string;
+  description: string;
+  defaultColor: string;
+}> = [
+  { key: "background", label: "页面背景", description: "--bg", defaultColor: "#f6f8fa" },
+  { key: "backgroundGlow", label: "背景光感", description: "--bg-glow", defaultColor: "#ffffff" },
+  { key: "surface", label: "基础面板", description: "--surface", defaultColor: "#ffffff" },
+  { key: "surfaceSoft", label: "柔和面板", description: "--surface-soft", defaultColor: "#f1f4f8" },
+  { key: "surfaceHover", label: "悬停背景", description: "--surface-hover", defaultColor: "#e9edf3" },
+  { key: "surfaceSelected", label: "选中背景", description: "--surface-selected", defaultColor: "#e5f3ff" },
+  { key: "line", label: "主分割线", description: "--line", defaultColor: "#d0d7de" },
+  { key: "lineSoft", label: "弱分割线", description: "--line-soft", defaultColor: "#d8dee4" },
+  { key: "text", label: "主文字", description: "--text", defaultColor: "#1f2328" },
+  { key: "textSoft", label: "次级文字", description: "--text-soft", defaultColor: "#4d5764" },
+  { key: "muted", label: "辅助文字", description: "--muted", defaultColor: "#6e7781" },
+  { key: "accent", label: "强调色", description: "--accent", defaultColor: "#007acc" },
+  { key: "accentStrong", label: "强调深色", description: "--accent-strong", defaultColor: "#0065a8" },
+  { key: "accentSoft", label: "强调浅底", description: "--accent-soft", defaultColor: "#e5f3ff" },
+  { key: "accentText", label: "强调文字", description: "--accent-text", defaultColor: "#075985" },
+  { key: "topbar", label: "顶栏底色", description: "顶部命令栏", defaultColor: "#ffffff" },
+  { key: "rightSidebar", label: "右侧栏底色", description: "已打开区域", defaultColor: "#f6f8fa" },
+  { key: "rightSearch", label: "右侧搜索", description: "搜索框底色", defaultColor: "#ffffff" },
+  { key: "savedCard", label: "标签卡片", description: "保存卡片底色", defaultColor: "#ffffff" },
+  { key: "popover", label: "弹出菜单", description: "二级/三级菜单", defaultColor: "#ffffff" }
+];
+
 const OPEN_TAB_OPTIONS: Array<{ value: OpenSavedTabMode; label: string; description: string }> = [
   { value: "new-tab", label: "新标签页打开", description: "点击保存卡片时创建新的 Chrome 标签页。" },
   { value: "current-tab", label: "当前页跳转", description: "点击保存卡片时复用当前新标签页。" }
@@ -36,8 +88,27 @@ const OPEN_FOLDER_OPTIONS: Array<{ value: OpenFolderMode; label: string; descrip
   { value: "chrome-group", label: "Chrome 分组", description: "打开全部后尽量放进同一个 Chrome 标签组。" }
 ];
 
+const CARD_DISPLAY_OPTIONS: Array<{ value: SavedTabCardDisplayMode; label: string; description: string }> = [
+  { value: "title-link", label: "标题 + 链接", description: "卡片显示标题，并在第二行显示链接域名。" },
+  { value: "title-only", label: "仅标题", description: "卡片只显示标题，适合更紧凑地浏览。" }
+];
+
+const TITLE_LINE_OPTIONS: Array<{ value: SavedTabTitleLineMode; label: string; description: string }> = [
+  { value: "single", label: "单行标题", description: "标题超出时省略，卡片高度更稳定。" },
+  { value: "double", label: "两行标题", description: "仅标题模式下允许标题换行显示两行。" }
+];
+
+const FONT_OPTIONS: Array<{ value: FontFamilyKey; label: string; description: string; sample: string }> = [
+  { value: "system", label: "系统默认", description: "跟随 Windows / macOS 的默认界面字体。", sample: "Tab 标签" },
+  { value: "modern-sans", label: "现代黑体", description: "优先使用 Noto / 思源一类清晰黑体。", sample: "清晰工作台" },
+  { value: "rounded", label: "圆润字体", description: "更柔和的圆体风格，适合轻松浏览。", sample: "柔和卡片" },
+  { value: "serif", label: "阅读宋体", description: "偏阅读感的宋体/衬线字体栈。", sample: "资料归档" },
+  { value: "mono", label: "等宽字体", description: "适合代码、文档和链接较多的工作区。", sample: "dev/docs" }
+];
+
 export function SettingsPage({ state, dispatch, onBack }: SettingsPageProps) {
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [settingsView, setSettingsView] = useState<"main" | "custom-theme">("main");
   const [lastImportMessage, setLastImportMessage] = useState("");
   const [syncConfig, setSyncConfig] = useState<SyncConfig>(DEFAULT_SYNC_CONFIG);
   const [syncLoading, setSyncLoading] = useState(true);
@@ -170,6 +241,73 @@ export function SettingsPage({ state, dispatch, onBack }: SettingsPageProps) {
     }
   };
 
+  const accentField = CUSTOM_THEME_COLOR_FIELDS.find((field) => field.key === "accent")!;
+  const accentColor = state.settings.customThemeColors.accent ?? accentField.defaultColor;
+  const setCustomThemeColor = (colorKey: CustomThemeColorKey, color: string) => {
+    if (!state.settings.customThemeEnabled) {
+      dispatch({ type: "setCustomThemeEnabled", enabled: true });
+    }
+    dispatch({ type: "setCustomThemeColor", colorKey, color });
+  };
+
+  if (settingsView === "custom-theme") {
+    return (
+      <section className="settings-page" aria-label="自定义主题">
+        <div className="settings-heading">
+          <button className="secondary-button" type="button" onClick={() => setSettingsView("main")}>
+            <ArrowLeft size={16} />
+            返回设置
+          </button>
+          <div>
+            <p className="eyebrow">Appearance</p>
+            <h2>自定义主题</h2>
+          </div>
+        </div>
+
+        <div className="settings-grid">
+          <section className="settings-panel settings-panel-wide custom-theme-detail-panel">
+            <div className="settings-panel-heading">
+              <h3>模块颜色</h3>
+              <p>这里放更细的颜色覆盖项。未设置的颜色会继续跟随当前 IDE 主题预设。</p>
+            </div>
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={state.settings.customThemeEnabled}
+                onChange={(event) => dispatch({ type: "setCustomThemeEnabled", enabled: event.target.checked })}
+              />
+              <span>
+                启用自定义颜色
+                <small>关闭后不会清空颜色，只是临时回到主题预设。</small>
+              </span>
+            </label>
+            <div className="custom-theme-grid">
+              {CUSTOM_THEME_COLOR_FIELDS.map((field) => (
+                <label className="custom-color-field" key={field.key}>
+                  <input
+                    type="color"
+                    value={state.settings.customThemeColors[field.key] ?? field.defaultColor}
+                    disabled={!state.settings.customThemeEnabled}
+                    onChange={(event) => dispatch({ type: "setCustomThemeColor", colorKey: field.key, color: event.target.value })}
+                  />
+                  <span>
+                    {field.label}
+                    <small>{field.description}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="settings-actions">
+              <button className="secondary-button" type="button" onClick={() => dispatch({ type: "resetCustomThemeColors" })}>
+                恢复主题默认颜色
+              </button>
+            </div>
+          </section>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="settings-page" aria-label="设置">
       <div className="settings-heading">
@@ -211,6 +349,66 @@ export function SettingsPage({ state, dispatch, onBack }: SettingsPageProps) {
 
         <section className="settings-panel">
           <div className="settings-panel-heading">
+            <h3>自定义主题</h3>
+            <p>主界面只保留重点色，细节颜色放到二级页面。</p>
+          </div>
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={state.settings.customThemeEnabled}
+              onChange={(event) => dispatch({ type: "setCustomThemeEnabled", enabled: event.target.checked })}
+            />
+            <span>
+              启用自定义颜色
+              <small>关闭后回到当前 IDE 主题预设。</small>
+            </span>
+          </label>
+          <label className="custom-accent-field">
+            <input
+              type="color"
+              value={accentColor}
+              onChange={(event) => setCustomThemeColor("accent", event.target.value)}
+            />
+            <span>
+              重点色
+              <small>{accentColor}</small>
+            </span>
+          </label>
+          <div className="settings-actions">
+            <button className="secondary-button custom-theme-link" type="button" onClick={() => setSettingsView("custom-theme")}>
+              细节颜色
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </section>
+
+        <section className="settings-panel">
+          <div className="settings-panel-heading">
+            <h3>IDE 主题</h3>
+            <p>选择参考常见 IDE 的配色预设。</p>
+          </div>
+          <div className="settings-option-list color-theme-list">
+            {COLOR_THEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                className={state.settings.colorThemeKey === option.value ? "settings-option selected color-theme-option" : "settings-option color-theme-option"}
+                type="button"
+                onClick={() => dispatch({ type: "setColorTheme", colorThemeKey: option.value })}
+              >
+                <span>{option.label}</span>
+                <div className="color-theme-swatches" aria-hidden="true">
+                  {option.swatches.map((color) => (
+                    <i key={color} style={{ background: color }} />
+                  ))}
+                </div>
+                <small>{option.description}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="settings-panel">
+          <div className="settings-panel-heading">
             <h3>打开方式</h3>
             <p>控制保存卡片和文件夹批量打开的行为。</p>
           </div>
@@ -240,6 +438,63 @@ export function SettingsPage({ state, dispatch, onBack }: SettingsPageProps) {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="settings-panel">
+          <div className="settings-panel-heading">
+            <h3>字体</h3>
+            <p>选择整个工作台使用的字体风格。</p>
+          </div>
+          <div className="settings-option-list font-option-list">
+            {FONT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                className={state.settings.fontFamilyKey === option.value ? "settings-option selected font-option" : "settings-option font-option"}
+                type="button"
+                data-font-preview={option.value}
+                onClick={() => dispatch({ type: "setFontFamily", fontFamilyKey: option.value })}
+              >
+                <span>{option.label}</span>
+                <strong>{option.sample}</strong>
+                <small>{option.description}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="settings-panel">
+          <div className="settings-panel-heading">
+            <h3>卡片显示</h3>
+            <p>控制工作区内保存标签页卡片的信息密度。</p>
+          </div>
+          <div className="settings-option-list">
+            {CARD_DISPLAY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                className={state.settings.savedTabCardDisplayMode === option.value ? "settings-option selected" : "settings-option"}
+                type="button"
+                onClick={() => dispatch({ type: "setSavedTabCardDisplayMode", mode: option.value })}
+              >
+                <span>{option.label}</span>
+                <small>{option.description}</small>
+              </button>
+            ))}
+          </div>
+          {state.settings.savedTabCardDisplayMode === "title-only" && (
+            <div className="settings-option-list">
+              {TITLE_LINE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  className={state.settings.savedTabTitleLineMode === option.value ? "settings-option selected" : "settings-option"}
+                  type="button"
+                  onClick={() => dispatch({ type: "setSavedTabTitleLineMode", mode: option.value })}
+                >
+                  <span>{option.label}</span>
+                  <small>{option.description}</small>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="settings-panel">

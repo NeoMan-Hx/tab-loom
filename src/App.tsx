@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { PencilLine, Plus, Redo2, Settings as SettingsIcon, SunMedium, Undo2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { FolderSection } from "./components/FolderSection";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { OpenTabsPanel } from "./components/OpenTabsPanel";
@@ -26,7 +26,7 @@ import { useOpenTabGroups } from "./hooks/useOpenTabGroups";
 import { usePersistentAppState } from "./hooks/usePersistentAppState";
 import { useThemeMode } from "./hooks/useThemeMode";
 import { closeOriginalTabAfterSave, filterOpenTabGroups } from "./services/chromeTabs";
-import type { ChromeOpenTab, EntityId, SavedTab } from "./types";
+import type { ChromeOpenTab, CustomThemeColorKey, EntityId, SavedTab } from "./types";
 
 type AppView = "workspace" | "settings";
 type DragEntityType = "open-tab" | "saved-tab" | "folder" | "workspace" | null;
@@ -41,7 +41,38 @@ function App() {
   const [view, setView] = useState<AppView>("workspace");
   const [editMode, setEditMode] = useState(false);
   useThemeMode(state.settings.themeMode, status !== "loading");
-  useAutoSync(state, dispatch, status);
+  const { uploadNow } = useAutoSync(state, dispatch, status);
+
+  useLayoutEffect(() => {
+    if (status !== "loading") {
+      document.documentElement.dataset.fontFamily = state.settings.fontFamilyKey;
+      document.documentElement.dataset.colorTheme = state.settings.colorThemeKey;
+    }
+  }, [state.settings.colorThemeKey, state.settings.fontFamilyKey, status]);
+
+  useLayoutEffect(() => {
+    if (status === "loading") return;
+
+    const root = document.documentElement;
+    root.dataset.customTheme = state.settings.customThemeEnabled ? "true" : "false";
+    for (const variableName of CUSTOM_THEME_VARIABLE_NAMES) {
+      root.style.removeProperty(variableName);
+    }
+
+    if (!state.settings.customThemeEnabled) return;
+
+    for (const [colorKey, color] of Object.entries(state.settings.customThemeColors)) {
+      const variableNames = CUSTOM_THEME_VARIABLES[colorKey as CustomThemeColorKey];
+      if (!variableNames || !color) continue;
+      for (const variableName of variableNames) {
+        root.style.setProperty(variableName, color);
+      }
+    }
+
+    if (state.settings.customThemeColors.accent && !state.settings.customThemeColors.accentStrong) {
+      root.style.setProperty("--accent-strong", state.settings.customThemeColors.accent);
+    }
+  }, [state.settings.customThemeColors, state.settings.customThemeEnabled, status]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -227,6 +258,18 @@ function App() {
     dispatch({ type: "setThemeMode", themeMode: nextTheme });
   };
 
+  const toggleEditMode = () => {
+    if (editMode) {
+      setEditMode(false);
+      window.setTimeout(() => {
+        void uploadNow();
+      }, 0);
+      return;
+    }
+
+    setEditMode(true);
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -279,7 +322,7 @@ function App() {
                   className={editMode ? "edit-mode-button active" : "edit-mode-button"}
                   type="button"
                   title={editMode ? "退出编辑模式" : "编辑模式"}
-                  onClick={() => setEditMode((value) => !value)}
+                  onClick={toggleEditMode}
                 >
                   <PencilLine size={18} />
                   <span>编辑模式</span>
@@ -317,6 +360,8 @@ function App() {
                         workspaces={workspaces}
                         openSavedTabMode={state.settings.openSavedTabMode}
                         openFolderMode={state.settings.openFolderMode}
+                        savedTabCardDisplayMode={state.settings.savedTabCardDisplayMode}
+                        savedTabTitleLineMode={state.settings.savedTabTitleLineMode}
                         editMode={editMode}
                         activeDragType={activeDragType}
                         dispatch={dispatch}
@@ -463,3 +508,28 @@ function formatLocalMinute(date: Date): string {
 }
 
 export default App;
+
+const CUSTOM_THEME_VARIABLES: Record<CustomThemeColorKey, string[]> = {
+  background: ["--bg"],
+  backgroundGlow: ["--bg-glow"],
+  surface: ["--surface"],
+  surfaceSoft: ["--surface-soft"],
+  surfaceHover: ["--surface-hover"],
+  surfaceSelected: ["--surface-selected"],
+  line: ["--line"],
+  lineSoft: ["--line-soft"],
+  text: ["--text"],
+  textSoft: ["--text-soft", "--muted-strong"],
+  muted: ["--muted"],
+  accent: ["--accent"],
+  accentStrong: ["--accent-strong"],
+  accentSoft: ["--accent-soft"],
+  accentText: ["--accent-text"],
+  topbar: ["--custom-topbar-bg"],
+  rightSidebar: ["--custom-open-tabs-bg"],
+  rightSearch: ["--custom-open-tabs-search-bg"],
+  savedCard: ["--custom-saved-card-bg"],
+  popover: ["--custom-popover-bg"]
+};
+
+const CUSTOM_THEME_VARIABLE_NAMES = Array.from(new Set(Object.values(CUSTOM_THEME_VARIABLES).flat()));

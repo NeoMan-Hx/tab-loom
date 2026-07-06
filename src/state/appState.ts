@@ -1,11 +1,16 @@
 import type {
   AppState,
   ChromeOpenTab,
+  ColorThemeKey,
+  CustomThemeColorKey,
   EntityId,
+  FontFamilyKey,
   Folder,
   OpenFolderMode,
   OpenSavedTabMode,
   SavedTab,
+  SavedTabCardDisplayMode,
+  SavedTabTitleLineMode,
   ThemeMode,
   Workspace,
   WorkspaceIconKey
@@ -23,9 +28,16 @@ export type AppAction =
   | { type: "deleteWorkspace"; workspaceId: EntityId }
   | { type: "setActiveWorkspace"; workspaceId: EntityId }
   | { type: "setThemeMode"; themeMode: ThemeMode }
+  | { type: "setColorTheme"; colorThemeKey: ColorThemeKey }
+  | { type: "setCustomThemeEnabled"; enabled: boolean }
+  | { type: "setCustomThemeColor"; colorKey: CustomThemeColorKey; color: string }
+  | { type: "resetCustomThemeColors" }
   | { type: "setOpenSavedTabMode"; mode: OpenSavedTabMode }
   | { type: "setShowPinnedOpenTabs"; showPinned: boolean }
   | { type: "setOpenFolderMode"; mode: OpenFolderMode }
+  | { type: "setSavedTabCardDisplayMode"; mode: SavedTabCardDisplayMode }
+  | { type: "setSavedTabTitleLineMode"; mode: SavedTabTitleLineMode }
+  | { type: "setFontFamily"; fontFamilyKey: FontFamilyKey }
   | { type: "reorderWorkspaces"; orderedWorkspaceIds: EntityId[] }
   | { type: "createFolder"; workspaceId: EntityId; name: string }
   | { type: "createFolderFromOpenTabs"; workspaceId: EntityId; name: string; tabs: ChromeOpenTab[] }
@@ -69,9 +81,15 @@ export function createDefaultState(): AppState {
     settings: {
       activeWorkspaceId: workspaceId,
       themeMode: "light",
+      colorThemeKey: "vscode",
       openSavedTabMode: "new-tab",
       showPinnedOpenTabs: true,
-      openFolderMode: "direct"
+      openFolderMode: "direct",
+      savedTabCardDisplayMode: "title-link",
+      savedTabTitleLineMode: "single",
+      fontFamilyKey: "system",
+      customThemeEnabled: false,
+      customThemeColors: {}
     }
   };
 }
@@ -101,6 +119,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "setThemeMode":
       return setThemeMode(state, action.themeMode);
 
+    case "setColorTheme":
+      return setColorTheme(state, action.colorThemeKey);
+
+    case "setCustomThemeEnabled":
+      return setCustomThemeEnabled(state, action.enabled);
+
+    case "setCustomThemeColor":
+      return setCustomThemeColor(state, action.colorKey, action.color);
+
+    case "resetCustomThemeColors":
+      return resetCustomThemeColors(state);
+
     case "setOpenSavedTabMode":
       return setOpenSavedTabMode(state, action.mode);
 
@@ -112,6 +142,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case "setOpenFolderMode":
       return setOpenFolderMode(state, action.mode);
+
+    case "setSavedTabCardDisplayMode":
+      return setSavedTabCardDisplayMode(state, action.mode);
+
+    case "setSavedTabTitleLineMode":
+      return setSavedTabTitleLineMode(state, action.mode);
+
+    case "setFontFamily":
+      return setFontFamily(state, action.fontFamilyKey);
 
     case "reorderWorkspaces":
       return reorderWorkspaces(state, action.orderedWorkspaceIds);
@@ -220,6 +259,56 @@ function setThemeMode(state: AppState, themeMode: ThemeMode): AppState {
   };
 }
 
+function setColorTheme(state: AppState, colorThemeKey: ColorThemeKey): AppState {
+  if (!["vscode", "darcula", "one-dark", "github", "solarized", "nord"].includes(colorThemeKey)) return state;
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      colorThemeKey
+    }
+  };
+}
+
+function setCustomThemeEnabled(state: AppState, enabled: boolean): AppState {
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      customThemeEnabled: enabled
+    }
+  };
+}
+
+function setCustomThemeColor(state: AppState, colorKey: CustomThemeColorKey, color: string): AppState {
+  if (!isCustomThemeColorKey(colorKey)) return state;
+
+  const normalizedColor = normalizeHexColor(color);
+  if (!normalizedColor) return state;
+
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      customThemeColors: {
+        ...state.settings.customThemeColors,
+        [colorKey]: normalizedColor
+      }
+    }
+  };
+}
+
+function resetCustomThemeColors(state: AppState): AppState {
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      customThemeEnabled: false,
+      customThemeColors: {}
+    }
+  };
+}
+
 function setOpenSavedTabMode(state: AppState, mode: OpenSavedTabMode): AppState {
   if (mode !== "new-tab" && mode !== "current-tab") return state;
   return {
@@ -238,6 +327,39 @@ function setOpenFolderMode(state: AppState, mode: OpenFolderMode): AppState {
     settings: {
       ...state.settings,
       openFolderMode: mode
+    }
+  };
+}
+
+function setSavedTabCardDisplayMode(state: AppState, mode: SavedTabCardDisplayMode): AppState {
+  if (mode !== "title-only" && mode !== "title-link") return state;
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      savedTabCardDisplayMode: mode
+    }
+  };
+}
+
+function setSavedTabTitleLineMode(state: AppState, mode: SavedTabTitleLineMode): AppState {
+  if (mode !== "single" && mode !== "double") return state;
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      savedTabTitleLineMode: mode
+    }
+  };
+}
+
+function setFontFamily(state: AppState, fontFamilyKey: FontFamilyKey): AppState {
+  if (!["system", "modern-sans", "rounded", "serif", "mono"].includes(fontFamilyKey)) return state;
+  return {
+    ...state,
+    settings: {
+      ...state.settings,
+      fontFamilyKey
     }
   };
 }
@@ -749,4 +871,40 @@ function isValidHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+const CUSTOM_THEME_COLOR_KEYS: CustomThemeColorKey[] = [
+  "background",
+  "backgroundGlow",
+  "surface",
+  "surfaceSoft",
+  "surfaceHover",
+  "surfaceSelected",
+  "line",
+  "lineSoft",
+  "text",
+  "textSoft",
+  "muted",
+  "accent",
+  "accentStrong",
+  "accentSoft",
+  "accentText",
+  "topbar",
+  "rightSidebar",
+  "rightSearch",
+  "savedCard",
+  "popover"
+];
+
+function isCustomThemeColorKey(value: unknown): value is CustomThemeColorKey {
+  return typeof value === "string" && CUSTOM_THEME_COLOR_KEYS.includes(value as CustomThemeColorKey);
+}
+
+function normalizeHexColor(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+    return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase();
+  }
+  return undefined;
 }

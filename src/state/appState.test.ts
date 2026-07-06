@@ -160,10 +160,36 @@ describe("appReducer", () => {
     state = appReducer(state, { type: "setOpenSavedTabMode", mode: "current-tab" });
     state = appReducer(state, { type: "setShowPinnedOpenTabs", showPinned: false });
     state = appReducer(state, { type: "setOpenFolderMode", mode: "chrome-group" });
+    state = appReducer(state, { type: "setSavedTabCardDisplayMode", mode: "title-only" });
+    state = appReducer(state, { type: "setSavedTabTitleLineMode", mode: "double" });
+    state = appReducer(state, { type: "setFontFamily", fontFamilyKey: "mono" });
+    state = appReducer(state, { type: "setColorTheme", colorThemeKey: "one-dark" });
+    state = appReducer(state, { type: "setCustomThemeEnabled", enabled: true });
+    state = appReducer(state, { type: "setCustomThemeColor", colorKey: "topbar", color: "#123abc" });
 
     expect(state.settings.openSavedTabMode).toBe("current-tab");
     expect(state.settings.showPinnedOpenTabs).toBe(false);
     expect(state.settings.openFolderMode).toBe("chrome-group");
+    expect(state.settings.savedTabCardDisplayMode).toBe("title-only");
+    expect(state.settings.savedTabTitleLineMode).toBe("double");
+    expect(state.settings.fontFamilyKey).toBe("mono");
+    expect(state.settings.colorThemeKey).toBe("one-dark");
+    expect(state.settings.customThemeEnabled).toBe(true);
+    expect(state.settings.customThemeColors.topbar).toBe("#123abc");
+  });
+
+  it("ignores invalid custom theme colors and resets custom theme settings", () => {
+    let state = createDefaultState();
+    state = appReducer(state, { type: "setCustomThemeEnabled", enabled: true });
+    state = appReducer(state, { type: "setCustomThemeColor", colorKey: "accent", color: "#0af" });
+    state = appReducer(state, { type: "setCustomThemeColor", colorKey: "accentStrong", color: "not-a-color" });
+
+    expect(state.settings.customThemeColors.accent).toBe("#00aaff");
+    expect(state.settings.customThemeColors.accentStrong).toBeUndefined();
+
+    state = appReducer(state, { type: "resetCustomThemeColors" });
+    expect(state.settings.customThemeEnabled).toBe(false);
+    expect(state.settings.customThemeColors).toEqual({});
   });
 });
 

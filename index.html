@@ -41,6 +41,8 @@
         --boot-surface: #fff;
         --boot-soft: #eef2ee;
         --boot-line: #d8dedb;
+        --boot-accent: #007acc;
+        --boot-accent-strong: #0065a8;
         width: 100%;
         height: 100vh;
         min-height: 100vh;
@@ -58,6 +60,8 @@
         --boot-surface: #171a1f;
         --boot-soft: #20242b;
         --boot-line: #2b3139;
+        --boot-accent: #3794ff;
+        --boot-accent-strong: #1f7edb;
       }
 
       html[data-theme="black"] .boot-shell {
@@ -66,6 +70,98 @@
         --boot-surface: #080808;
         --boot-soft: #111;
         --boot-line: #202020;
+        --boot-accent: #3794ff;
+        --boot-accent-strong: #1f7edb;
+      }
+
+      html[data-color-theme="github"] .boot-shell {
+        --boot-bg: #f6f8fa;
+        --boot-bg-glow: #fff;
+        --boot-surface: #fff;
+        --boot-soft: #f0f3f6;
+        --boot-line: #d0d7de;
+        --boot-accent: #0969da;
+        --boot-accent-strong: #0550ae;
+      }
+
+      html[data-theme="dark"][data-color-theme="github"] .boot-shell {
+        --boot-bg: #0d1117;
+        --boot-bg-glow: #161b22;
+        --boot-surface: #161b22;
+        --boot-soft: #21262d;
+        --boot-line: #30363d;
+        --boot-accent: #2f81f7;
+        --boot-accent-strong: #1f6feb;
+      }
+
+      html[data-color-theme="darcula"] .boot-shell {
+        --boot-accent: #cc7832;
+        --boot-accent-strong: #a95f23;
+      }
+
+      html[data-theme="dark"][data-color-theme="darcula"] .boot-shell {
+        --boot-bg: #2b2b2b;
+        --boot-bg-glow: #313335;
+        --boot-surface: #313335;
+        --boot-soft: #3c3f41;
+        --boot-line: #4b4d4f;
+        --boot-accent: #ffc66d;
+        --boot-accent-strong: #cc7832;
+      }
+
+      html[data-color-theme="one-dark"] .boot-shell {
+        --boot-accent: #4078f2;
+        --boot-accent-strong: #2f5cc8;
+      }
+
+      html[data-theme="dark"][data-color-theme="one-dark"] .boot-shell {
+        --boot-bg: #282c34;
+        --boot-bg-glow: #2f343d;
+        --boot-surface: #2f343d;
+        --boot-soft: #353b45;
+        --boot-line: #454b55;
+        --boot-accent: #61afef;
+        --boot-accent-strong: #528bff;
+      }
+
+      html[data-color-theme="solarized"] .boot-shell {
+        --boot-bg: #fdf6e3;
+        --boot-bg-glow: #fffaf0;
+        --boot-surface: #fffaf0;
+        --boot-soft: #eee8d5;
+        --boot-line: #d8cfb5;
+        --boot-accent: #268bd2;
+        --boot-accent-strong: #1f6f9f;
+      }
+
+      html[data-theme="dark"][data-color-theme="solarized"] .boot-shell {
+        --boot-bg: #002b36;
+        --boot-bg-glow: #073642;
+        --boot-surface: #073642;
+        --boot-soft: #0d3f4b;
+        --boot-line: #25535f;
+        --boot-accent: #2aa198;
+        --boot-accent-strong: #268bd2;
+      }
+
+      html[data-color-theme="nord"] .boot-shell {
+        --boot-bg: #eceff4;
+        --boot-bg-glow: #f8fafc;
+        --boot-surface: #fff;
+        --boot-soft: #e5e9f0;
+        --boot-line: #c7cfdb;
+        --boot-accent: #5e81ac;
+        --boot-accent-strong: #4c6f99;
+      }
+
+      html[data-theme="dark"][data-color-theme="nord"] .boot-shell {
+        --boot-bg: #2e3440;
+        --boot-bg-glow: #3b4252;
+        --boot-surface: #3b4252;
+        --boot-soft: #434c5e;
+        --boot-line: #4c566a;
+        --boot-accent: #88c0d0;
+        --boot-accent-strong: #81a1c1;
       }
 
       .boot-topbar {
@@ -167,6 +263,7 @@
 
       .boot-lane-button {
         border-radius: 7px;
+        background: linear-gradient(180deg, var(--boot-accent), var(--boot-accent-strong));
       }
 
       .boot-row {

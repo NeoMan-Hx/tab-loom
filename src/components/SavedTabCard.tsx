@@ -7,12 +7,14 @@ import { useEffect, useRef, useState } from "react";
 import type { AppAction } from "../state/appState";
 import { openSavedTab } from "../services/chromeTabs";
 import { getSavedTabIconFallback } from "../services/savedTabDisplay";
-import type { OpenSavedTabMode, SavedTab } from "../types";
+import type { OpenSavedTabMode, SavedTab, SavedTabCardDisplayMode, SavedTabTitleLineMode } from "../types";
 
 interface SavedTabCardProps {
   tab: SavedTab;
   domain: string;
   openSavedTabMode: OpenSavedTabMode;
+  savedTabCardDisplayMode: SavedTabCardDisplayMode;
+  savedTabTitleLineMode: SavedTabTitleLineMode;
   editMode: boolean;
   showInsertTargets?: boolean;
   insertIndex?: number;
@@ -24,6 +26,8 @@ export function SavedTabCard({
   tab,
   domain,
   openSavedTabMode,
+  savedTabCardDisplayMode,
+  savedTabTitleLineMode,
   editMode,
   showInsertTargets = false,
   insertIndex = 0,
@@ -152,6 +156,8 @@ export function SavedTabCard({
   const hasLoadableIcon = Boolean(tab.favIconUrl) && !iconFailed;
   const showFallbackIcon = !hasLoadableIcon || !iconLoaded;
   const openTab = () => void openSavedTab(tab, openSavedTabMode);
+  const showLinkLine = savedTabCardDisplayMode === "title-link";
+  const allowTwoLineTitle = !showLinkLine && savedTabTitleLineMode === "double";
 
   const handleCardClick = (event: MouseEvent<HTMLElement>) => {
     if (isCardOpenExcluded(event.target as HTMLElement)) return;
@@ -171,6 +177,8 @@ export function SavedTabCard({
       className={[
         isDragging ? "saved-tab-card dragging" : "saved-tab-card",
         editMode ? "edit-mode" : "",
+        showLinkLine ? "" : "title-only",
+        allowTwoLineTitle ? "title-two-lines" : "",
         menuOpen ? "menu-open" : ""
       ]
         .filter(Boolean)
@@ -213,7 +221,11 @@ export function SavedTabCard({
         <span className="link-title" title={tab.title}>
           {tab.title}
         </span>
-        <span className="domain-text">{domain}</span>
+        {showLinkLine && (
+          <span className="domain-text" title={tab.url}>
+            {domain}
+          </span>
+        )}
       </div>
 
       <div className="saved-tab-more" ref={menuRef} onClick={(event) => event.stopPropagation()}>

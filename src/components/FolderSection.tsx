@@ -7,7 +7,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppAction } from "../state/appState";
 import { openSavedTabs } from "../services/chromeTabs";
 import { getDomain } from "../services/sorting";
-import type { EntityId, Folder, OpenFolderMode, OpenSavedTabMode, SavedTab, Workspace } from "../types";
+import type {
+  EntityId,
+  Folder,
+  OpenFolderMode,
+  OpenSavedTabMode,
+  SavedTab,
+  SavedTabCardDisplayMode,
+  SavedTabTitleLineMode,
+  Workspace
+} from "../types";
 import { SavedTabCard } from "./SavedTabCard";
 
 type ActiveDragType = "open-tab" | "saved-tab" | "folder" | "workspace" | null;
@@ -18,6 +27,8 @@ interface FolderSectionProps {
   workspaces: Workspace[];
   openSavedTabMode: OpenSavedTabMode;
   openFolderMode: OpenFolderMode;
+  savedTabCardDisplayMode: SavedTabCardDisplayMode;
+  savedTabTitleLineMode: SavedTabTitleLineMode;
   editMode: boolean;
   activeDragType: ActiveDragType;
   dispatch: Dispatch<AppAction>;
@@ -29,6 +40,8 @@ export function FolderSection({
   workspaces,
   openSavedTabMode,
   openFolderMode,
+  savedTabCardDisplayMode,
+  savedTabTitleLineMode,
   editMode,
   activeDragType,
   dispatch
@@ -179,6 +192,8 @@ export function FolderSection({
                 tab={tab}
                 domain={getDomain(tab.url)}
                 openSavedTabMode={openSavedTabMode}
+                savedTabCardDisplayMode={savedTabCardDisplayMode}
+                savedTabTitleLineMode={savedTabTitleLineMode}
                 editMode={editMode}
                 showInsertTargets={showInsertTargets}
                 insertIndex={index}

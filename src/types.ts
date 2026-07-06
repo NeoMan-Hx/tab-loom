@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 10;
 
 export type EntityId = string;
 
@@ -7,6 +7,32 @@ export type SortDirection = "asc" | "desc";
 export type ThemeMode = "light" | "dark" | "black" | "system";
 export type OpenSavedTabMode = "new-tab" | "current-tab";
 export type OpenFolderMode = "direct" | "chrome-group";
+export type SavedTabCardDisplayMode = "title-only" | "title-link";
+export type SavedTabTitleLineMode = "single" | "double";
+export type FontFamilyKey = "system" | "modern-sans" | "rounded" | "serif" | "mono";
+export type ColorThemeKey = "vscode" | "darcula" | "one-dark" | "github" | "solarized" | "nord";
+export type CustomThemeColorKey =
+  | "background"
+  | "backgroundGlow"
+  | "surface"
+  | "surfaceSoft"
+  | "surfaceHover"
+  | "surfaceSelected"
+  | "line"
+  | "lineSoft"
+  | "text"
+  | "textSoft"
+  | "muted"
+  | "accent"
+  | "accentStrong"
+  | "accentSoft"
+  | "accentText"
+  | "topbar"
+  | "rightSidebar"
+  | "rightSearch"
+  | "savedCard"
+  | "popover";
+export type CustomThemeColors = Partial<Record<CustomThemeColorKey, string>>;
 export type WorkspaceIconKey =
   | "briefcase"
   | "code"
@@ -105,6 +131,12 @@ export interface AppSettings {
   openSavedTabMode: OpenSavedTabMode;
   showPinnedOpenTabs: boolean;
   openFolderMode: OpenFolderMode;
+  savedTabCardDisplayMode: SavedTabCardDisplayMode;
+  savedTabTitleLineMode: SavedTabTitleLineMode;
+  fontFamilyKey: FontFamilyKey;
+  colorThemeKey: ColorThemeKey;
+  customThemeEnabled: boolean;
+  customThemeColors: CustomThemeColors;
 }
 
 export interface AppState {
